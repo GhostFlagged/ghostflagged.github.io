@@ -5,23 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GhostFlagged Blog</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header>
-    <h1>GhostFlagged Blog</h1>
-    <p>My personal space for writing and sharing ideas.</p>
-  </header>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="profile-pic">
+          <img src="./033c6a1e8ca3ad18b0e6ac169604c66b.jpg" alt="Profile Picture" id="profile-img">
+        </div>
+        <h1>GhostFlagged</h1>
+        <p class="tagline">My personal space for writing and sharing ideas.</p>
+      </div>
+      
+      <div class="contact-section">
+        <h3>Contact</h3>
+        <a href="mailto:your.email@example.com" class="email-link">your.email@example.com</a>
+      </div>
 
-  <main>
-    <h2>Blog Posts</h2>
-    <ul>
-      <li><a href="posts/first-post.html">First Post</a></li>
-      <li><a href="posts/second-post.html">Second Post</a></li>
-    </ul>
-  </main>
+      <nav class="sidebar-nav">
+        <a href="#posts" class="nav-link active">Posts</a>
+        <a href="#projects" class="nav-link">Projects</a>
+      </nav>
 
-  <footer>
-    <p>&copy; 2025 GhostFlagged</p>
-  </footer>
+      <footer class="sidebar-footer">
+        <p>&copy; 2025 GhostFlagged</p>
+      </footer>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Posts Section -->
+      <section id="posts" class="content-section">
+        <h2>Blog Posts</h2>
+        <div class="posts-list">
+          <article class="post-item">
+            <h3><a href="posts/first-post.html">First Post</a></h3>
+            <p class="post-meta">Published on January 2025</p>
+            <p class="post-excerpt">Welcome to my first blog post! This is where I'll start writing my ideas and thoughts.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Projects Section -->
+      <section id="projects" class="content-section">
+        <h2>Projects</h2>
+        <div class="projects-list">
+          <article class="project-item">
+            <h3>Project Name</h3>
+            <p class="project-meta">Technology Stack</p>
+            <p class="project-description">A brief description of your project goes here. You can add links, technologies used, and more details.</p>
+            <a href="#" class="project-link">View Project →</a>
+          </article>
+          <article class="project-item">
+            <h3>Another Project</h3>
+            <p class="project-meta">Technology Stack</p>
+            <p class="project-description">Another project description. Update this with your actual projects.</p>
+            <a href="#" class="project-link">View Project →</a>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
