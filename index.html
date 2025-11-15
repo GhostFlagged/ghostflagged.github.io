@@ -84,24 +84,6 @@
         </div>
       </section>
 
-      <!-- Projects Section -->
-      <section id="projects" class="content-section">
-        <h2>Projects</h2>
-        <div class="projects-list">
-          <article class="project-item">
-            <h3>Project Name</h3>
-            <p class="project-meta">Technology Stack</p>
-            <p class="project-description">A brief description of your project goes here. You can add links, technologies used, and more details.</p>
-            <a href="#" class="project-link">View Project →</a>
-          </article>
-          <article class="project-item">
-            <h3>Another Project</h3>
-            <p class="project-meta">Technology Stack</p>
-            <p class="project-description">Another project description. Update this with your actual projects.</p>
-            <a href="#" class="project-link">View Project →</a>
-          </article>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -110,30 +92,52 @@
     document.addEventListener('DOMContentLoaded', function() {
       const filters = document.querySelectorAll('.category-filter');
       const posts = document.querySelectorAll('.post-item');
+      const searchInput = document.getElementById('search-input');
+      let currentCategory = 'all';
+      let searchQuery = '';
 
+      // Category filtering
       filters.forEach(filter => {
         filter.addEventListener('click', function() {
-          const category = this.getAttribute('data-category');
+          currentCategory = this.getAttribute('data-category');
 
           // Update active state
           filters.forEach(f => f.classList.remove('active'));
           this.classList.add('active');
 
-          // Filter posts
-          posts.forEach(post => {
-            if (category === 'all') {
-              post.classList.remove('hidden');
-            } else {
-              const postCategory = post.getAttribute('data-category');
-              if (postCategory === category) {
-                post.classList.remove('hidden');
-              } else {
-                post.classList.add('hidden');
-              }
-            }
-          });
+          // Apply filters
+          applyFilters();
         });
       });
+
+      // Search functionality
+      searchInput.addEventListener('input', function() {
+        searchQuery = this.value.toLowerCase().trim();
+        applyFilters();
+      });
+
+      // Apply both category and search filters
+      function applyFilters() {
+        posts.forEach(post => {
+          const postCategory = post.getAttribute('data-category');
+          const postTitle = post.querySelector('h3 a').textContent.toLowerCase();
+          const postExcerpt = post.querySelector('.post-excerpt').textContent.toLowerCase();
+          const postText = postTitle + ' ' + postExcerpt;
+
+          // Check category filter
+          const categoryMatch = currentCategory === 'all' || postCategory === currentCategory;
+          
+          // Check search filter
+          const searchMatch = searchQuery === '' || postText.includes(searchQuery);
+
+          // Show/hide post
+          if (categoryMatch && searchMatch) {
+            post.classList.remove('hidden');
+          } else {
+            post.classList.add('hidden');
+          }
+        });
+      }
     });
   </script>
 </body>
