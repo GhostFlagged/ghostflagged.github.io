@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recon-Dashboard Overview - GhostFlagged Blog</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="profile-pic">
+          <img src="../033c6a1e8ca3ad18b0e6ac169604c66b.jpg" alt="Profile Picture" id="profile-img">
+        </div>
+        <h1>GhostFlagged</h1>
+        <p class="tagline">My personal space for writing and sharing ideas.</p>
+      </div>
+      
+      <div class="bio-section">
+        <h3>Bio</h3>
+        <p>Security researcher and CTF enthusiast. Passionate about web application security, vulnerability research, and sharing knowledge through writeups and tools.</p>
+      </div>
+      
+      <div class="contact-section">
+        <h3>Contact</h3>
+        <a href="mailto:your.email@example.com" class="email-link">your.email@example.com</a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="../index.html#posts" class="nav-link">Posts</a>
+      </nav>
+
+      <footer class="sidebar-footer">
+        <p>&copy; 2025 GhostFlagged</p>
+      </footer>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <article class="post-content">
+        <div class="post-title-header">
+          <span class="post-category category-tooling">Tooling</span>
+          <h1>Recon-Dashboard</h1>
+        </div>
+        <p class="post-meta">Published on November 2025</p>
+        <a href="../index.html" class="back-link">← Back to Home</a>
+        <div class="post-body">
+          <p>Recon-Dashboard is a lightweight orchestration layer that chains together my favorite reconnaissance utilities. The goal is to automate the repetitive discovery work and leave me with a single, neatly organized folder per target containing everything I need for deeper analysis.</p>
+
+          <div class="image-row" style="display:flex; gap:1.5rem; flex-wrap:wrap; justify-content:center; align-items:flex-start;">
+            <figure class="post-image-frame" style="flex:0 1 320px; max-width:360px;">
+              <img src="/poc/view.png" alt="Recon-Dashboard overview mockup" style="width:100%; height:auto;">
+              <figcaption>Dashboard overview placeholder</figcaption>
+            </figure>
+            <figure class="post-image-frame" style="flex:0 1 320px; max-width:360px;">
+              <img src="/poc/results.png" alt="Recon-Dashboard targets mockup" style="width:100%; height:auto;">
+              <figcaption>Targets drill-down placeholder</figcaption>
+            </figure>
+          </div>
+
+          <h2>How It Works</h2>
+          <p>The pipeline processes domains through a sequential workflow of reconnaissance tools. It reads target domains from <code>targets.json</code> and executes each module in order, with downstream tools consuming the previous tool’s output.</p>
+          <ol>
+            <li><strong>Subfinder</strong> discovers subdomains for every target.</li>
+            <li><strong>httpx</strong> probes discovered subdomains to identify live hosts.</li>
+            <li><strong>Katana</strong> crawls each live host to enumerate endpoints and URLs.</li>
+            <li><strong>gau</strong> extracts JavaScript file URLs from Katana’s output.</li>
+            <li><strong>fallparams</strong> pulls query parameters from the Katana crawl data.</li>
+          </ol>
+          <p>All results are saved inside the <code>Targets/</code> directory and organized by domain with file names like <code>{domain}.subfinder</code>, <code>{domain}.httpx</code>, or <code>{domain}.katana</code>. A built-in skip mechanism checks whether a tool has already produced valid data; if so, that step is skipped to keep reruns fast.</p>
+
+          <h2>Supported Modules</h2>
+          <ul>
+            <li><strong>subfinder:</strong> High-signal subdomain discovery with passive + API sources.</li>
+            <li><strong>httpx:</strong> Live host detection including response codes, titles, CDN tags, and tech fingerprints.</li>
+            <li><strong>katana:</strong> Modern crawler for endpoints, URLs, and script references.</li>
+            <li><strong>gau:</strong> Quick JavaScript URL extraction from historical data providers.</li>
+            <li><strong>fallparams:</strong> Parameter discovery to prime future fuzzing runs.</li>
+          </ul>
+
+          <h2>Why I Built It</h2>
+          <p>The dashboard mindset keeps me honest about coverage. Instead of juggling loose text files, I get predictable folders, easy diffing between runs, and clear signals when a module needs attention. The skip logic also means I can pause and resume large recon batches without wasting API credits or time.</p>
+
+          <h2>Next Steps</h2>
+          <p>With the skeleton in place, I plan to wire up live charts, surface tool errors directly in the UI, and add a toggle for optional modules like nuclei or custom wordlists. For now, drop your screenshots into the placeholders above and you’re good to ship an update or share a demo.</p>
+        </div>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
+
